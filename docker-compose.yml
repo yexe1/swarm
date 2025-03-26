@@ -1,0 +1,252 @@
+version: '3.8'
+
+services:
+  front-end:
+    image: weaveworksdemos/front-end:0.3.12
+    ports:
+      - "80:80"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.4"
+          memory: 256M
+      placement:
+        constraints:
+          - node.role == manager
+    cap_drop:
+      - all
+    read_only: true
+    environment:
+      - PORT=80
+    networks:
+      - sock-shop
+
+  catalogue:
+    image: weaveworksdemos/catalogue:0.3.5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 256M
+    cap_drop:
+      - all
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    networks:
+      - sock-shop
+
+  catalogue-db:
+    image: weaveworksdemos/catalogue-db:0.3.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+      - MYSQL_DATABASE=socksdb
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 256M
+    networks:
+      - sock-shop
+
+  carts:
+    image: weaveworksdemos/carts:0.4.8
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 256M
+    cap_drop:
+      - all
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+    environment:
+      - JAVA_OPTS=-Xms64m -Xmx128m
+    networks:
+      - sock-shop
+
+  carts-db:
+    image: mongo:3.4
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 256M
+    cap_drop:
+      - all
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    volumes:
+      - cartsdbdata:/data/db
+    networks:
+      - sock-shop
+
+  orders:
+    image: weaveworksdemos/orders:0.4.7
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 256M
+    cap_drop:
+      - all
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+    environment:
+      - JAVA_OPTS=-Xms64m -Xmx128m
+    networks:
+      - sock-shop
+
+  orders-db:
+    image: mongo:3.4
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 256M
+    cap_drop:
+      - all
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    volumes:
+      - ordersdbdata:/data/db
+    networks:
+      - sock-shop
+
+  shipping:
+    image: weaveworksdemos/shipping:0.4.8
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 256M
+    cap_drop:
+      - all
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+    environment:
+      - JAVA_OPTS=-Xms64m -Xmx128m
+    networks:
+      - sock-shop
+
+  queue-master:
+    image: weaveworksdemos/queue-master:0.3.1
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 128M
+    cap_drop:
+      - all
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+    networks:
+      - sock-shop
+
+  rabbitmq:
+    image: rabbitmq:3.6.8
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 256M
+    cap_drop:
+      - all
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    read_only: true
+    networks:
+      - sock-shop
+
+  payment:
+    image: weaveworksdemos/payment:0.4.3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 256M
+    cap_drop:
+      - all
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    networks:
+      - sock-shop
+
+  user:
+    image: weaveworksdemos/user:0.4.4
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 256M
+    cap_drop:
+      - all
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    environment:
+      - MONGO_HOST=user-db:27017
+    networks:
+      - sock-shop
+
+  user-db:
+    image: weaveworksdemos/user-db:0.4.0
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 256M
+    cap_drop:
+      - all
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    volumes:
+      - userdbdata:/data/db
+    networks:
+      - sock-shop
+
+  user-sim:
+    image: weaveworksdemos/load-test:0.1.1
+    command: "-d 60 -r 200 -c 2 -h front-end"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 128M
+    cap_drop:
+      - all
+    read_only: true
+    networks:
+      - sock-shop
+
+networks:
+  sock-shop:
+    driver: overlay
+
+volumes:
+  cartsdbdata:
+  ordersdbdata:
+  userdbdata:
